@@ -62,7 +62,7 @@ def parse_page(html):
     return parsed_data
 
 # main function to perform the scrapping
-def scrape_rozetka(base_url, num_page=2, delay=2):
+def scrape_site(base_url, num_page=2, delay=2):
     all_products = []
 
     for page in range(1, num_page + 1):
@@ -86,4 +86,4 @@ def scrape_rozetka(base_url, num_page=2, delay=2):
         logging.error(f'Failed to save file: {e}')
 
 # start function
-scrape_rozetka(base_url, num_page=2, delay=2)
+scrape_site(base_url, num_page=2, delay=2)
