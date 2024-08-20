@@ -5,6 +5,14 @@ import pandas as pd
 import time
 import logging
 import os
+import argparse
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Scrape product data from Rozetka.')
+    parser.add_argument('--num_page', type=int, default=2, help='Number of pages to scrape')
+    parser.add_argument('--delay', type=int, default=2,help='Delay between requests in seconds.')
+    parser.add_argument('--output', type=str, default='product.сsv', help='Output file name')
+    return parser.parse_args()
 
 # set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -53,16 +61,15 @@ def parse_page(html):
 # parsed data list loop
     parsed_data = []
     for product, price, avail, image in zip(products, prices, availability, images):
-        product_name = product.text.strip()
-        product_price = price.text.strip()
-        product_availability = avail.text.strip()
-        image_url = image['src']
-        image_filename = download_image(image_url, product_name)
+        product_name = product.text.strip() if product else "N/A"
+        product_price = price.text.strip() if price else "N/A"
+        product_availability = avail.text.strip() if avail else "N/A"
+        image_url = image['src'] if image else None
+        image_filename = download_image(image_url, product_name) if image_url else "No Image"
         parsed_data.append((product_name, product_price, product_availability, image_filename))
     return parsed_data
-
-# main function to perform the scrapping
-def scrape_site(base_url, num_page=2, delay=2):
+# Main function to perform the scraping
+def scrape_site(base_url, num_page=2, delay=2, output_filename='product.csv'):
     all_products = []
 
     for page in range(1, num_page + 1):
@@ -86,4 +93,5 @@ def scrape_site(base_url, num_page=2, delay=2):
         logging.error(f'Failed to save file: {e}')
 
 # start function
-scrape_site(base_url, num_page=2, delay=2)
+args = parse_arguments()
+scrape_site(base_url, num_page=args.num_page, delay=args.delay, output_filename=args.output)
