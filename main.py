@@ -6,6 +6,11 @@ import time
 import logging
 import os
 import argparse
+from fake_useragent import UserAgent
+
+def get_headers():
+    ua = UserAgent()
+    return {'User-Agent': ua.random}
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Scrape product data from Rozetka.')
@@ -15,7 +20,8 @@ def parse_arguments():
     return parser.parse_args()
 
 # set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[logging.FileHandler('scrape.log'), logging.StreamHandler()])
 
 # directory of images (create folder for images)
 image_dir = 'images'
@@ -28,9 +34,11 @@ base_url = "https://hard.rozetka.com.ua/videocards/c80087/page={page_num};21330=
 # Make get request and recieve statuse code of page
 def get_page_content(url):
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=get_headers(),timeout=10)
         response.raise_for_status()
         return response.text
+    except requests.exceptions.Timeout:
+        logging.error(f"Timeout occurred while trying to fetch {url}")
     except requests.exceptions.HTTPError as http_err:
         logging.error(f"HTTP error occurred: {http_err}")
     except Exception as err:
@@ -66,6 +74,15 @@ def parse_page(html):
         product_availability = avail.text.strip() if avail else "N/A"
         image_url = image['src'] if image else None
         image_filename = download_image(image_url, product_name) if image_url else "No Image"
+
+        # Check for attribute 'src'
+        image_url = image.get('src') or image.get('data-src')
+        if not image_url:
+            logging.warning(f"No image URL found for product: {product_name}")
+            image_filename = "No image"
+        else:
+            image_filename = download_image(image_url, product_name)
+
         parsed_data.append((product_name, product_price, product_availability, image_filename))
     return parsed_data
 # Main function to perform the scraping
